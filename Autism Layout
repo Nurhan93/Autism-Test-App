@@ -1,0 +1,2230 @@
+package com.mandroid.onlinecompiler;
+
+import android.annotation.SuppressLint;
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.graphics.Canvas;
+import android.graphics.Paint.Align;
+import android.graphics.Typeface;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.provider.DocumentsContract;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
+import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.AppCompatEditText;
+import android.support.v7.widget.ShareActionProvider;
+import android.support.v7.widget.Toolbar;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.Layout;
+import android.text.Selection;
+import android.text.TextPaint;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.text.method.KeyListener;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.UnderlineSpan;
+import android.util.AttributeSet;
+import android.util.Log;
+import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.HorizontalScrollView;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import com.anjlab.android.iab.v3.BillingProcessor;
+import com.anjlab.android.iab.v3.TransactionDetails;
+import com.mandroid.onlinecompiler.activity.MarkdownActivity;
+import com.mandroid.onlinecompiler.activity.SelectFileActivity;
+import com.mandroid.onlinecompiler.adapter.AdapterDrawer;
+import com.mandroid.onlinecompiler.adapter.AdapterDrawer.Callbacks;
+import com.mandroid.onlinecompiler.dialogfragment.EditTextDialog;
+import com.mandroid.onlinecompiler.dialogfragment.EditTextDialog.Actions;
+import com.mandroid.onlinecompiler.dialogfragment.EditTextDialog.EditDialogListener;
+import com.mandroid.onlinecompiler.dialogfragment.FindTextDialog;
+import com.mandroid.onlinecompiler.dialogfragment.FindTextDialog.SearchDialogInterface;
+import com.mandroid.onlinecompiler.dialogfragment.NewFileDetailsDialog;
+import com.mandroid.onlinecompiler.dialogfragment.NumberPickerDialog;
+import com.mandroid.onlinecompiler.dialogfragment.NumberPickerDialog.INumberPickerDialog;
+import com.mandroid.onlinecompiler.dialogfragment.SaveFileDialog;
+import com.mandroid.onlinecompiler.dialogfragment.SaveFileDialog.ISaveDialog;
+import com.mandroid.onlinecompiler.model.C1157b;
+import com.mandroid.onlinecompiler.model.DialogListAdapter;
+import com.mandroid.onlinecompiler.model.Lang;
+import com.mandroid.onlinecompiler.model.Language;
+import com.mandroid.onlinecompiler.preferences.PreferenceChangeType;
+import com.mandroid.onlinecompiler.preferences.PreferenceHelper;
+import com.mandroid.onlinecompiler.task.SaveFileTask;
+import com.mandroid.onlinecompiler.task.SaveFileTask.SaveFileInterface;
+import com.mandroid.onlinecompiler.texteditor.EditTextPadding;
+import com.mandroid.onlinecompiler.texteditor.FileUtils;
+import com.mandroid.onlinecompiler.texteditor.LineUtils;
+import com.mandroid.onlinecompiler.texteditor.PageSystem;
+import com.mandroid.onlinecompiler.texteditor.PageSystem.PageSystemInterface;
+import com.mandroid.onlinecompiler.texteditor.PageSystemButtons;
+import com.mandroid.onlinecompiler.texteditor.PageSystemButtons.PageButtonsInterface;
+import com.mandroid.onlinecompiler.texteditor.Patterns;
+import com.mandroid.onlinecompiler.texteditor.SearchResult;
+import com.mandroid.onlinecompiler.util.AccessStorageApi;
+import com.mandroid.onlinecompiler.util.AccessoryView;
+import com.mandroid.onlinecompiler.util.AccessoryView.IAccessoryView;
+import com.mandroid.onlinecompiler.util.AnimationUtils;
+import com.mandroid.onlinecompiler.util.Device;
+import com.mandroid.onlinecompiler.util.GreatUri;
+import com.mandroid.onlinecompiler.util.MimeTypes;
+import com.mandroid.onlinecompiler.util.ThemeUtils;
+import com.mandroid.onlinecompiler.util.ViewUtils;
+import com.mandroid.onlinecompiler.views.CustomDrawerLayout;
+import com.mandroid.onlinecompiler.views.GoodScrollView;
+import com.mandroid.onlinecompiler.views.GoodScrollView.ScrollInterface;
+import com.android.volley.AuthFailureError;
+import com.android.volley.Response.ErrorListener;
+import com.android.volley.Response.Listener;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.mandroid.onlinecompiler.floatingactionbutton.FloatingActionButton;
+import com.google.gson.Gson;
+import com.mandroid.onlinecompiler.rootfw4.RootFW;
+import com.mandroid.onlinecompiler.rootfw4.utils.io.FileReader;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.CharEncoding;
+import org.json.JSONArray;
+import org.json.JSONException;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import us.feras.mdv.util.HttpHelper;
+
+
+public class FirstActivity extends AppCompatActivity implements SearchDialogInterface, ScrollInterface, PageSystemInterface, PageButtonsInterface, INumberPickerDialog, ISaveDialog, OnItemClickListener, Callbacks, IAccessoryView, EditDialogListener {
+    private static final int CHARS_TO_COLOR = 2500;
+    private static final int CREATE_REQUEST_CODE = 43;
+    private static final int ID_COPY = 16908321;
+    private static final int ID_CUT = 16908320;
+    private static final int ID_PASTE = 16908322;
+    private static final int ID_REDO = 2131296375;
+    private static final int ID_SELECT_ALL = 16908319;
+    private static final int ID_UNDO = 2131296387;
+    private static final int READ_REQUEST_CODE = 42;
+    private static final int SAVE_AS_REQUEST_CODE = 44;
+    private static final int SELECT_FILE_CODE = 121;
+    private static final int SYNTAX_DELAY_MILLIS_LONG = 1500;
+    private static final int SYNTAX_DELAY_MILLIS_SHORT = 250;
+    public static String client;
+    public static String code;
+    public static String extension = "";
+    public static String input;
+    public static String language;
+    public static String language_v;
+    private static String currentEncoding = CharEncoding.UTF_16;
+    private static String fileExtension = "";
+    private static GreatUri greatUri = new GreatUri(Uri.EMPTY, "", "");
+    private static PageSystem pageSystem;
+    private static SearchResult searchResult;
+    private static GoodScrollView verticalScroll;
+    private final Runnable colorRunnable_duringEditing = new C03441();
+    private final Runnable colorRunnable_duringScroll = new C03452();
+    private final Handler updateHandler = new Handler();
+    List<Lang> langList = new ArrayList();
+    List<Language> languageList = new ArrayList();
+    List<String> languageNameList = new ArrayList();
+    Lang selectedLanguage;
+    boolean doubleBackToExitPressedOnce = false;
+    private AdapterDrawer arrayAdapter;
+    private boolean fileOpened = false;
+    private LinkedList<GreatUri> greatUris;
+    private HorizontalScrollView horizontalScroll;
+    private CustomDrawerLayout mDrawerLayout;
+    private ActionBarDrawerToggle mDrawerToggle;
+    private MyEditor mMyEditor;
+    private PageSystemButtons pageSystemButtons;
+    private Toolbar toolbar;
+    private Lang[] tempLanguage;
+    private Lang lang;
+
+    private static final String SUBSCRIPTION_ID = "com.compiler.labs";
+    private static final String LICENSE_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmPGutkEmOA0r0nQPJp0j+AzwMLc9V2t++E3cA2JOugG8v0/X0nieRIx9sBAoAPeJM9d9CSby69vl5MFJ2Bsq+3WT7ad6/gaTTK/pvYbHGYvNwljcnr3WO1cXmX41wFbIAXemD/1VLacpXI68RwgTpOx08oNL4ifXFCt5E2aox0KYa/cft6c4gWjY32PK4y2ueihzldUf+vIUdWkDdzCBTAWWSju+64WZiNpIH/S7BDNY2YhjYjHpIJEh08IpwxDfv7LB0Q8B9raxQjeFVFMSyKzC7VyRztwFs6qCYkY5QsFHm1P3u/2qr7mP78bWgSJ7UNozbdnYVIwUC/3AmCo8ywIDAQAB";
+
+    private static final String MERCHANT_ID=null;
+
+    private BillingProcessor bp;
+    private boolean readyToPurchase = false;
+
+    public static boolean hasPermissions(Context context, String... permissions) {
+        if (!(Build.VERSION.SDK_INT < 23 || context == null || permissions == null)) {
+            for (String permission : permissions) {
+                if (ContextCompat.checkSelfPermission(context, permission) != 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    protected void onCreate(Bundle savedInstanceState) {
+        ThemeUtils.setWindowsBackground(this);
+        super.onCreate(savedInstanceState);
+
+
+        if (!isConnected(this)) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("No Internet Connection");
+            builder.setMessage("You need to have Mobile Data or wifi to access this.\n\nPress OK to Exit");
+            builder.setCancelable(false);
+            builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                    finish();
+                }
+            });
+            builder.show();
+        } /*else {*/
+        setContentView((int) R.layout.activity_main);
+        this.toolbar = (Toolbar) findViewById(R.id.my_awesome_toolbar);
+        setSupportActionBar(this.toolbar);
+
+        try {
+            long installed =
+                    getPackageManager()
+                            .getPackageInfo(getApplicationContext().getPackageName(), 0)
+                            .firstInstallTime
+                    ;
+
+            if(installed>TimeUnit.DAYS.toMillis(30))
+            {
+                if(!BillingProcessor.isIabServiceAvailable(this)) {
+                    showToast("In-app billing service is unavailable, please upgrade Android Market/Play to version >= 3.9.16");
+                }
+
+                bp = new BillingProcessor(this, LICENSE_KEY, MERCHANT_ID, new BillingProcessor.IBillingHandler() {
+                    @Override
+                    public void onProductPurchased(@NonNull String productId, @Nullable TransactionDetails details) {
+                        showToast("onProductPurchased: " + productId);
+//                        updateTextViews();
+                    }
+                    @Override
+                    public void onBillingError(int errorCode, @Nullable Throwable error) {
+                        showToast("onBillingError: " + Integer.toString(errorCode));
+                    }
+                    @Override
+                    public void onBillingInitialized() {
+                        showToast("onBillingInitialized");
+                        readyToPurchase = true;
+//                        updateTextViews();
+                    }
+                    @Override
+                    public void onPurchaseHistoryRestored() {
+                        showToast("onPurchaseHistoryRestored");
+                        for(String sku : bp.listOwnedSubscriptions())
+                        {
+
+                        }
+//                        updateTextViews();
+                    }
+                });
+                bp.subscribe(FirstActivity.this,SUBSCRIPTION_ID);
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        setupNavigationDrawer();
+        getList();
+        getListLang();
+        setupTextEditor();
+        hideTextEditor();
+        if (savedInstanceState == null) {
+            this.mDrawerLayout.openDrawer((int) GravityCompat.START);
+            getSupportActionBar().setTitle(getString(R.string.nome_app_online_compiler_editor));
+        }
+        parseIntent(getIntent());
+        /*}*/
+
+    }
+
+
+
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+    }
+
+
+    public boolean isConnected(Context context) {
+
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netinfo = cm.getActiveNetworkInfo();
+
+        if (netinfo != null && netinfo.isConnectedOrConnecting()) {
+            android.net.NetworkInfo wifi = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            android.net.NetworkInfo mobile = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+
+            if ((mobile != null && mobile.isConnectedOrConnecting()) || (wifi != null && wifi.isConnectedOrConnecting()))
+                return true;
+            else return false;
+        } else
+            return false;
+    }
+
+    protected void onStart() {
+        super.onStart();
+        String[] permissionarray = new String[]{"android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.INTERNET"};
+        if (!hasPermissions(this, permissionarray)) {
+            ActivityCompat.requestPermissions(this, permissionarray, 1);
+        }
+    }
+
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case 1:
+                if (grantResults.length <= 0 || grantResults[0] != 0) {
+                    Toast.makeText(this, "Permission denied to read your External storage", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                return;
+            default:
+        }
+    }
+
+    protected final void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        try {
+            this.mDrawerToggle.syncState();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+    public void onResume() {
+        super.onResume();
+        try {
+            refreshList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        parseIntent(intent);
+    }
+
+    public void onPause() {
+        super.onPause();
+        if (PreferenceHelper.getAutoSave(getBaseContext()) && this.mMyEditor.canSaveFile()) {
+            saveTheFile(false);
+            this.mMyEditor.fileSaved();
+        }
+    }
+
+
+    protected void onDestroy() {
+        try {
+            closeKeyBoard();
+            if (bp != null)
+                bp.release();
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
+        super.onDestroy();
+    }
+
+    public final void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        this.mDrawerToggle.onConfigurationChanged(newConfig);
+    }
+
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == 4) {
+            onBackPressed();
+            return true;
+        } else if (keyCode == 82) {
+            return false;
+        } else {
+            if (this.mMyEditor == null) {
+                this.mMyEditor = (MyEditor) findViewById(R.id.editor_my);
+            }
+            try {
+                if (!(!this.fileOpened || this.mMyEditor == null || this.mMyEditor.hasFocus())) {
+                    this.mMyEditor.requestFocus();
+                    this.mMyEditor.onKeyDown(keyCode, event);
+                    return true;
+                }
+            } catch (NullPointerException e) {
+            }
+            return false;
+        }
+    }
+
+    @SuppressLint("ByteOrderMark")
+    public void onBackPressed() {
+        try {
+            if (!PreferenceHelper.getIgnoreBackButton(this)) {
+                if (this.mDrawerLayout.isDrawerOpen((int) GravityCompat.START) && this.fileOpened) {
+                    this.mDrawerLayout.closeDrawer((int) GravityCompat.START);
+                } else if (this.mDrawerLayout.isDrawerOpen((int) GravityCompat.END) && this.fileOpened) {
+                    this.mDrawerLayout.closeDrawer((int) GravityCompat.END);
+                } else if (this.fileOpened && this.mMyEditor.canSaveFile()) {
+                    new SaveFileDialog(greatUri, pageSystem.getAllText(this.mMyEditor.getText().toString().trim().replace("\u0000", "").replace("\\u0000", "").replace("?", "").replace("\\ufeff", "").replace("﻿", "")), currentEncoding).show(getFragmentManager(), "dialog");
+                } else if (this.fileOpened) {
+                    hideTextEditor();
+                    getSupportActionBar().setTitle(getString(R.string.nome_app_online_compiler_editor));
+                    closedTheFile();
+                    this.mDrawerLayout.openDrawer((int) GravityCompat.START);
+                    this.mDrawerLayout.closeDrawer((int) GravityCompat.END);
+                } else {
+                    if (doubleBackToExitPressedOnce) {
+                        super.onBackPressed();
+                        return;
+                    }
+
+                    this.doubleBackToExitPressedOnce = true;
+                    Toast.makeText(this, "click BACK again to exit", Toast.LENGTH_SHORT).show();
+
+                    new Handler().postDelayed(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            doubleBackToExitPressedOnce = false;
+                        }
+                    }, 2000);
+                }
+            }
+        } catch (Exception e) {
+        }
+    }
+
+    @SuppressLint("WrongConstant")
+    @RequiresApi(api = 19)
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        if (!bp.handleActivityResult(requestCode, resultCode, intent))
+            super.onActivityResult(requestCode, resultCode, intent);
+        if (resultCode != -1) {
+            return;
+        }
+        if (requestCode == SELECT_FILE_CODE) {
+            Uri data = intent.getData();
+            newFileToOpen(new GreatUri(data, AccessStorageApi.getPath(this, data), AccessStorageApi.getName(this, data)), "");
+            return;
+        }
+        Uri data = intent.getData();
+        final GreatUri newUri = new GreatUri(data, AccessStorageApi.getPath(this, data), AccessStorageApi.getName(this, data));
+        getContentResolver().takePersistableUriPermission(data, intent.getFlags() & 3);
+        if (requestCode == 42 || requestCode == 43) {
+            newFileToOpen(newUri, "");
+        }
+        if (requestCode == 44) {
+            new SaveFileTask(this, newUri, pageSystem.getAllText(this.mMyEditor.getText().toString().trim()), currentEncoding, new SaveFileInterface() {
+                public void fileSaved(Boolean success) {
+                    FirstActivity.this.savedAFile(FirstActivity.greatUri, false);
+                    FirstActivity.this.newFileToOpen(newUri, "");
+                }
+            }).execute(new Void[0]);
+        }
+    }
+
+    public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+        newFileToOpen((GreatUri) this.greatUris.get(position), "");
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        if (this.fileOpened && searchResult != null) {
+            getMenuInflater().inflate(R.menu.my_fragment_editor_search, menu);
+        } else if (this.fileOpened) {
+            getMenuInflater().inflate(R.menu.my_fragment_editor, menu);
+        }
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if (this.fileOpened && searchResult != null) {
+            MenuItem imReplace = menu.findItem(R.id.im_replace);
+            MenuItem imReplaceAll = menu.findItem(R.id.im_replace_all);
+            MenuItem imPrev = menu.findItem(R.id.im_previous_item);
+            MenuItem imNext = menu.findItem(R.id.im_next_item);
+            if (imReplace != null) {
+                imReplace.setVisible(searchResult.canReplaceSomething());
+            }
+            if (imReplaceAll != null) {
+                imReplaceAll.setVisible(searchResult.canReplaceSomething());
+            }
+            if (imPrev != null) {
+                imPrev.setVisible(searchResult.hasPrevious());
+            }
+            if (imNext != null) {
+                imNext.setVisible(searchResult.hasNext());
+            }
+        } else if (this.fileOpened) {
+            MenuItem imSave = menu.findItem(R.id.im_save);
+            MenuItem im_run = menu.findItem(R.id.im_run);
+            MenuItem imUndo = menu.findItem(R.id.im_undo);
+            MenuItem imRedo = menu.findItem(R.id.im_redo);
+            if (this.mMyEditor != null) {
+                if (imSave != null) {
+                    imSave.setVisible(this.mMyEditor.canSaveFile());
+                }
+                if (imUndo != null) {
+                    imUndo.setVisible(this.mMyEditor.getCanUndo());
+                }
+                if (imRedo != null) {
+                    imRedo.setVisible(this.mMyEditor.getCanRedo());
+                }
+            } else {
+                imSave.setVisible(false);
+                imUndo.setVisible(false);
+                imRedo.setVisible(false);
+            }
+            MenuItem imMarkdown = menu.findItem(R.id.im_view_markdown);
+            boolean isMarkdown = Arrays.asList(MimeTypes.MIME_MARKDOWN).contains(FilenameUtils.getExtension(greatUri.getFileName()));
+            if (imMarkdown != null) {
+                imMarkdown.setVisible(isMarkdown);
+            }
+        }
+        return true;
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int i = item.getItemId();
+        if (this.mDrawerToggle.onOptionsItemSelected(item)) {
+            Toast.makeText(getBaseContext(), "drawer click", Toast.LENGTH_SHORT).show();
+            this.mDrawerLayout.closeDrawer((int) GravityCompat.END);
+            return true;
+        }
+        Intent browserIntent;
+        if (i == R.id.im_save_normaly) {
+            saveTheFile(false);
+        } else if (i == R.id.im_save_as) {
+            saveTheFile(true);
+        } else if (i == R.id.im_rename) {
+            String s = greatUri.getFileName();
+            if (!s.equals("")) {
+                EditTextDialog.newInstance(Actions.Rename, greatUri.getFileName()).show(getFragmentManager().beginTransaction(), "dialog");
+            } else {
+                Snackbar snackbar = Snackbar
+                        .make(toolbar, "First Save File To Rename", Snackbar.LENGTH_LONG);
+
+                snackbar.show();
+            }
+        } else if (i == R.id.im_undo) {
+            this.mMyEditor.onTextContextMenuItem(R.id.im_undo);
+        } else if (i == R.id.im_redo) {
+            this.mMyEditor.onTextContextMenuItem(R.id.im_redo);
+        } else if (i == R.id.im_search) {
+            FindTextDialog.newInstance(this.mMyEditor.getText().toString().trim()).show(getFragmentManager().beginTransaction(), "dialog");
+        } else if (i == R.id.im_cancel) {
+            searchResult = null;
+            invalidateOptionsMenu();
+        } else if (i == R.id.im_replace) {
+            replaceText(false);
+        } else if (i == R.id.im_replace_all) {
+            replaceText(true);
+        } else if (i == R.id.im_next_item) {
+            nextResult();
+        } else if (i == R.id.im_previous_item) {
+            previousResult();
+        } else if (i == R.id.im_goto_line) {
+
+            int min = mMyEditor.getLineUtils().firstReadLine();
+            int max = mMyEditor.getLineUtils().lastReadLine();
+            NumberPickerDialog.newInstance
+                    (NumberPickerDialog.Actions.GoToLine, min, min, max).show(getFragmentManager().beginTransaction(), "dialog");
+
+        } else if (i == R.id.im_share) {
+
+            if (!greatUri.getFilePath().equals("")) {  //IF File Saved Then File Shared
+                ShareActionProvider shareAction = (ShareActionProvider) MenuItemCompat.getActionProvider(item);
+                Intent shareIntent = new Intent();
+                shareIntent.setAction("android.intent.action.SEND");
+                shareIntent.putExtra("android.intent.extra.STREAM", greatUri.getUri());
+                shareIntent.setType("text/plain");
+                shareAction.setShareIntent(shareIntent);
+            } else {  //Otherwise Plain Text Code is Shared
+                String s = pageSystem.getAllText(this.mMyEditor.getText().toString().trim());
+
+                ShareActionProvider shareAction = (ShareActionProvider) MenuItemCompat.getActionProvider(item);
+                Intent shareIntent = new Intent();
+                shareIntent.setAction("android.intent.action.SEND");
+                shareIntent.putExtra(android.content.Intent.EXTRA_TEXT, s);
+                shareIntent.setType("text/plain");
+                shareAction.setShareIntent(shareIntent);
+            }
+        } else if (i == R.id.im_view_markdown) {
+            browserIntent = new Intent(this, MarkdownActivity.class);
+            browserIntent.putExtra("text", pageSystem.getAllText(this.mMyEditor.getText().toString().trim()));
+            startActivity(browserIntent);
+        } else if (i == R.id.im_run) {
+
+            if (isConnected(this)) {
+                code = this.mMyEditor.getText().toString().trim();
+                @SuppressLint("ByteOrderMark") String mycode = this.mMyEditor.getText().toString().trim().replace("\u0000", "").replace("\\u0000", "").replace("\\ufeff", "").replace("﻿", "").replace("?", "");
+                Intent intent = new Intent(this, BaseActivity.class);
+                intent.putExtra("language", language);
+                intent.putExtra("language_v", language_v);
+                intent.putExtra("input", input);
+                intent.putExtra("code", mycode);
+                intent.putExtra("client", client);
+                startActivity(intent);
+            } else {
+                Toast.makeText(this, "Please Check Your Internet", Toast.LENGTH_SHORT).show();
+            }
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    void replaceText(boolean all) {
+        if (all) {
+            mMyEditor.setText(pageSystem.getAllText(mMyEditor.getText().toString()).replaceAll(searchResult.whatToSearch, searchResult.textToReplace));
+
+            searchResult = null;
+            invalidateOptionsMenu();
+        } else {
+            int start = searchResult.foundIndex.get(searchResult.index);
+            int end = start + searchResult.textLength;
+            mMyEditor.setText(mMyEditor.getText().replace(start, end, searchResult.textToReplace));
+            searchResult.doneReplace();
+
+            invalidateOptionsMenu();
+
+            if (searchResult.hasNext())
+                nextResult();
+            else if (searchResult.hasPrevious())
+                previousResult();
+        }
+    }
+
+    void nextResult() {
+        if (searchResult.index == mMyEditor.getLineCount() - 1) // last result of page
+        {
+            return;
+        }
+
+
+        if (searchResult.index < searchResult.numberOfResults() - 1) { // equal zero is not good
+            searchResult.index++;
+            final int line = mMyEditor.getLineUtils().getLineFromIndex(searchResult.foundIndex.get
+                    (searchResult.index), mMyEditor.getLineCount(), mMyEditor.getLayout());
+
+
+            verticalScroll.post(new Runnable() {
+                @Override
+                public void run() {
+                    int y = mMyEditor.getLayout().getLineTop(line);
+                    if (y > 100)
+                        y -= 100;
+                    else
+                        y = 0;
+
+                    verticalScroll.scrollTo(0, y);
+                }
+            });
+
+            mMyEditor.setFocusable(true);
+            mMyEditor.requestFocus();
+            mMyEditor.setSelection(searchResult.foundIndex.get(searchResult.index),
+                    searchResult.foundIndex.get(searchResult.index) + searchResult.textLength);
+        }
+
+        invalidateOptionsMenu();
+    }
+
+    void previousResult() {
+        if (searchResult.index == 0)
+            return;
+        if (searchResult.index > 0) {
+            searchResult.index--;
+            final int line = LineUtils.getLineFromIndex(searchResult.foundIndex.get
+                    (searchResult.index), mMyEditor.getLineCount(), mMyEditor.getLayout());
+            verticalScroll.post(new Runnable() {
+                @Override
+                public void run() {
+                    int y = mMyEditor.getLayout().getLineTop(line);
+                    if (y > 100)
+                        y -= 100;
+                    else
+                        y = 0;
+                    verticalScroll.scrollTo(0, y);
+                }
+            });
+
+            mMyEditor.setFocusable(true);
+            mMyEditor.requestFocus();
+            mMyEditor.setSelection(searchResult.foundIndex.get(searchResult.index),
+                    searchResult.foundIndex.get(searchResult.index) + searchResult.textLength);
+        }
+
+        invalidateOptionsMenu();
+    }
+
+    public void saveTheFile(boolean saveAs) {
+        if (!saveAs && greatUri != null && greatUri.getUri() != null && greatUri.getUri() != Uri.EMPTY) {
+            new SaveFileTask(this, greatUri, pageSystem.getAllText(this.mMyEditor.getText().toString().trim()), currentEncoding, new C06177()).execute(new Void[0]);
+        } else if (Device.hasKitKatApi() && PreferenceHelper.getUseStorageAccessFramework(this)) {
+            Intent intent = new Intent("android.intent.action.CREATE_DOCUMENT");
+            intent.setType("*/*");
+            intent.putExtra("android.intent.extra.TITLE", greatUri.getFileName());
+            startActivityForResult(intent, 44);
+        } else {
+            new NewFileDetailsDialog(greatUri, pageSystem.getAllText(this.mMyEditor.getText().toString().trim()), currentEncoding).show(getFragmentManager().beginTransaction(), "dialog");
+        }
+    }
+
+    private void setupNavigationDrawer() {
+        this.mDrawerLayout = (CustomDrawerLayout) findViewById(R.id.drawer_layout_my);
+        this.mDrawerToggle = new ActionBarDrawerToggle(this, this.mDrawerLayout, this.toolbar, R.string.nome_app_online_compiler_editor, R.string.nome_app_online_compiler_editor) {
+            public void onDrawerOpened(View drawerView) {
+                FirstActivity.this.supportInvalidateOptionsMenu();
+                try {
+                    FirstActivity.this.closeKeyBoard();
+                } catch (NullPointerException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            public void onDrawerClosed(View view) {
+                FirstActivity.this.supportInvalidateOptionsMenu();
+            }
+        };
+        this.mDrawerLayout.setDrawerListener(this.mDrawerToggle);
+        ListView listView = (ListView) findViewById(16908298);
+        listView.setEmptyView(findViewById(16908292));
+        this.greatUris = new LinkedList();
+        this.arrayAdapter = new AdapterDrawer(this, this.greatUris, this);
+        listView.setAdapter(this.arrayAdapter);
+        listView.setDividerHeight(2);
+        listView.setOnItemClickListener(this);
+    }
+
+
+    private void setupTextEditor() {
+        verticalScroll = (GoodScrollView) findViewById(R.id.vertical_scroll_my);
+        this.horizontalScroll = (HorizontalScrollView) findViewById(R.id.horizontal_scroll_my);
+        this.mMyEditor = (MyEditor) findViewById(R.id.editor_my);
+        ((AccessoryView) findViewById(R.id.accessoryView)).setInterface(this);
+        ViewUtils.setVisible((HorizontalScrollView) findViewById(R.id.parent_accessory_view), PreferenceHelper.getUseAccessoryView(this));
+        if (PreferenceHelper.getWrapContent(this)) {
+            this.horizontalScroll.removeView(this.mMyEditor);
+            verticalScroll.removeView(this.horizontalScroll);
+            verticalScroll.addView(this.mMyEditor);
+        }
+        verticalScroll.setScrollInterface(this);
+        pageSystem = new PageSystem(this, this, "");
+        this.pageSystemButtons = new PageSystemButtons(this, this, (FloatingActionButton) findViewById(R.id.fabPrev), (FloatingActionButton) findViewById(R.id.fabNext));
+        this.mMyEditor.setupEditor();
+    }
+
+
+    private void showTextEditor() {
+        this.fileOpened = true;
+        findViewById(R.id.text_editor).setVisibility(View.VISIBLE);
+        findViewById(R.id.no_file_opened_messagge).setVisibility(View.GONE);
+        this.mMyEditor.resetVariables();
+        searchResult = null;
+        invalidateOptionsMenu();
+        this.mMyEditor.disableTextChangedListener();
+        this.mMyEditor.replaceTextKeepCursor(pageSystem.getCurrentPageText());
+        this.mMyEditor.enableTextChangedListener();
+    }
+
+    private void hideTextEditor() {
+        this.fileOpened = false;
+        try {
+            findViewById(R.id.text_editor).setVisibility(View.GONE);
+            findViewById(R.id.no_file_opened_messagge).setVisibility(View.VISIBLE);
+            this.mMyEditor.disableTextChangedListener();
+            this.mMyEditor.replaceTextKeepCursor("");
+            this.mMyEditor.enableTextChangedListener();
+        } catch (Exception e) {
+        }
+    }
+
+    private void parseIntent(Intent intent) {
+        String action = intent.getAction();
+        String type = intent.getType();
+        if ("android.intent.action.VIEW".equals(action) || "android.intent.action.EDIT".equals(action) || ("android.intent.action.PICK".equals(action) && type != null)) {
+            Uri uri = intent.getData();
+            newFileToOpen(new GreatUri(uri, AccessStorageApi.getPath(this, uri), AccessStorageApi.getName(this, uri)), "");
+        } else if ("android.intent.action.SEND".equals(action) && type != null && "text/plain".equals(type)) {
+            newFileToOpen(new GreatUri(Uri.EMPTY, "", ""), intent.getStringExtra("android.intent.extra.TEXT"));
+        }
+    }
+
+
+    @SuppressLint("WrongConstant")
+    private void closeKeyBoard() throws NullPointerException {
+        ((InputMethodManager) getSystemService("input_method")).hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 2);
+    }
+
+    void updateTextSyntax() {
+        if (PreferenceHelper.getSyntaxHighlight(this) && !this.mMyEditor.hasSelection() && this.updateHandler != null && this.colorRunnable_duringEditing != null) {
+            this.updateHandler.removeCallbacks(this.colorRunnable_duringEditing);
+            this.updateHandler.removeCallbacks(this.colorRunnable_duringScroll);
+            this.updateHandler.postDelayed(this.colorRunnable_duringEditing, 1500);
+        }
+    }
+
+    private void refreshList() {
+        refreshList(null, false, false);
+    }
+
+    private void refreshList(@Nullable GreatUri thisUri, boolean add, boolean delete) {
+        int max_recent_files = 15;
+        if (add)
+            max_recent_files--;
+
+        // File paths saved in preferences
+        String[] savedPaths = PreferenceHelper.getSavedPaths(this);
+        int first_index_of_array = savedPaths.length > max_recent_files ? savedPaths.length - max_recent_files : 0;
+        savedPaths = ArrayUtils.subarray(savedPaths, first_index_of_array, savedPaths.length);
+        // File names for the list
+        greatUris.clear();
+        // StringBuilder that will contain the file paths
+        StringBuilder sb = new StringBuilder();
+
+        // for cycle to convert paths to names
+        for (int i = 0; i < savedPaths.length; i++) {
+            Uri particularUri = Uri.parse(savedPaths[i]);
+            String name = AccessStorageApi.getName(this, particularUri);
+            // Check that the file exist
+            // if is null or empty the particular url we dont use it
+            if (particularUri != null && !particularUri.equals(Uri.EMPTY) && !TextUtils.isEmpty(name)) {
+                // if the particular uri is good
+                boolean good = false;
+                if (thisUri == null || thisUri.getUri() == null || thisUri.getUri() == Uri.EMPTY)
+                    good = true;
+                else {
+                    if (delete == false)
+                        good = true;
+                    else if (!thisUri.getUri().equals(particularUri))
+                        good = true;
+                    else
+                        good = false;
+                }
+                if (good) {
+                    greatUris.addFirst(new GreatUri(particularUri, AccessStorageApi.getPath(this, particularUri), name));
+                    sb.append(savedPaths[i]).append(",");
+                }
+            }
+            //}
+        }
+        // if is not null, empty, we have to add something and we dont already have this uri
+        if (thisUri != null && !thisUri.getUri().equals(Uri.EMPTY) && add && !ArrayUtils.contains(savedPaths, thisUri.getUri().toString())) {
+            sb.append(thisUri.getUri().toString()).append(",");
+            greatUris.addFirst(thisUri);
+        }
+        // save list without empty or non existed files
+        PreferenceHelper.setSavedPaths(this, sb);
+        // Set adapter
+        arrayAdapter.notifyDataSetChanged();
+    }
+
+    //region EVENTBUS
+    @SuppressLint("StaticFieldLeak")
+    void newFileToOpen(final GreatUri newUri, final String newFileText) {
+
+        if (fileOpened && mMyEditor != null && mMyEditor.canSaveFile() && greatUri != null && pageSystem != null && currentEncoding != null) {
+            new SaveFileDialog(greatUri, pageSystem.getAllText(mMyEditor
+                    .getText().toString()), currentEncoding, true, newUri).show(getFragmentManager(),
+                    "dialog");
+            return;
+        }
+
+        new AsyncTask<Void, Void, Void>() {
+
+            String message = "";
+            String fileText = "";
+            String fileName = "";
+            String encoding = "UTF-16";
+            boolean isRootRequired = false;
+            ProgressDialog progressDialog;
+
+            @Override
+            protected void onPreExecute() {
+                super.onPreExecute();
+                // Close the drawer
+                try {
+                    mDrawerLayout.closeDrawer(Gravity.START);
+                    progressDialog = new ProgressDialog(FirstActivity.this);
+                    progressDialog.setMessage(getString(R.string.please_wait));
+                    progressDialog.show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+            @Override
+            protected Void doInBackground(Void... params) {
+                try {
+                    // if no new uri
+                    if (newUri == null || newUri.getUri() == null || newUri.getUri() == Uri.EMPTY) {
+                        fileExtension = "txt";
+                        fileText = newFileText;
+                    } else {
+                        String filePath = newUri.getFilePath();
+
+                        // if the uri has no path
+                        if (TextUtils.isEmpty(filePath)) {
+                            fileName = newUri.getFileName();
+                            fileExtension = FilenameUtils.getExtension(fileName).toLowerCase();
+
+                            readUri(newUri.getUri(), filePath, false);
+                        }
+                        // if the uri has a path
+                        else {
+                            fileName = FilenameUtils.getName(filePath);
+                            fileExtension = FilenameUtils.getExtension(fileName).toLowerCase();
+
+                            isRootRequired = !newUri.isReadable();
+                            // if we cannot read the file, root permission required
+                            if (isRootRequired) {
+                                readUri(newUri.getUri(), filePath, true);
+                            }
+                            // if we can read the file associated with the uri
+                            else {
+                                readUri(newUri.getUri(), filePath, false);
+                            }
+                        }
+
+                    }
+
+                    greatUri = newUri;
+                } catch (Exception e) {
+                    message = e.getMessage();
+                    fileText = "";
+                }
+
+                while (mDrawerLayout.isDrawerOpen(Gravity.START)) {
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                return null;
+            }
+
+            private void readUri(Uri uri, String path, boolean asRoot) throws IOException {
+
+
+                BufferedReader buffer = null;
+                StringBuilder stringBuilder = new StringBuilder();
+                String line;
+
+                if (asRoot) {
+
+                    encoding = "UTF-8";
+
+                    // Connect the shared connection
+                    if (RootFW.connect()) {
+                        FileReader reader = RootFW.getFileReader(path);
+                        buffer = new BufferedReader(reader);
+                    }
+                } else {
+
+                    boolean autoencoding = PreferenceHelper.getAutoEncoding(FirstActivity.this);
+                    if (autoencoding) {
+                        encoding = FileUtils.getDetectedEncoding(getContentResolver().openInputStream(uri));
+                        if (encoding.isEmpty()) {
+                            encoding = PreferenceHelper.getEncoding(FirstActivity.this);
+                        }
+                    } else {
+                        encoding = PreferenceHelper.getEncoding(FirstActivity.this);
+                    }
+
+                    InputStream inputStream = getContentResolver().openInputStream(uri);
+                    if (inputStream != null) {
+                        buffer = new BufferedReader(new InputStreamReader(inputStream, encoding));
+                    }
+                }
+
+                if (buffer != null) {
+                    while ((line = buffer.readLine()) != null) {
+                        stringBuilder.append(line);
+                        stringBuilder.append("\n");
+                    }
+                    buffer.close();
+                    fileText = stringBuilder.toString();
+                }
+
+                if (isRootRequired)
+                    RootFW.disconnect();
+            }
+
+            @Override
+            protected void onPostExecute(Void result) {
+                super.onPostExecute(result);
+                progressDialog.hide();
+
+                if (!TextUtils.isEmpty(message)) {
+                    Toast.makeText(FirstActivity.this, message, Toast.LENGTH_LONG).show();
+                    cannotOpenFile();
+                } else {
+
+                    pageSystem = new PageSystem(FirstActivity.this, FirstActivity.this, fileText);
+                    currentEncoding = encoding;
+
+                    aFileWasSelected(greatUri);
+
+                    showTextEditor();
+
+                    if (fileName.isEmpty())
+                        getSupportActionBar().setTitle(R.string.new_file);
+                    else
+                        getSupportActionBar().setTitle(fileName);
+
+                    if (greatUri != null) {
+                        refreshList(greatUri, true, false);
+                    }
+                }
+
+            }
+        }.execute();
+    }
+
+    public void savedAFile(GreatUri uri, boolean updateList) {
+
+        if (uri != null) {
+
+            greatUri = uri;
+
+            String name = uri.getFileName();
+            fileExtension = FilenameUtils.getExtension(name).toLowerCase();
+            toolbar.setTitle(name);
+
+            if (updateList) {
+                refreshList(uri, true, false);
+                arrayAdapter.selectPosition(uri);
+            }
+        }
+
+        mMyEditor.clearHistory();
+        mMyEditor.fileSaved();
+        invalidateOptionsMenu();
+
+        try {
+            closeKeyBoard();
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
+    }
+
+    void cannotOpenFile() {
+        this.mDrawerLayout.openDrawer(3);
+        getSupportActionBar().setTitle(getString(R.string.nome_app_online_compiler_editor));
+        supportInvalidateOptionsMenu();
+        hideTextEditor();
+    }
+
+    public void aPreferenceValueWasChanged(final PreferenceChangeType type) {
+        this.aPreferenceValueWasChanged(new ArrayList<PreferenceChangeType>() {{
+            add(type);
+        }});
+    }
+    //endregion
+
+
+    void aPreferenceValueWasChanged(List<PreferenceChangeType> types) {
+
+        if (types.contains(PreferenceChangeType.THEME_CHANGE)) {
+            ThemeUtils.setWindowsBackground(this);
+            AccessoryView accessoryView = (AccessoryView) findViewById(R.id.accessoryView);
+            accessoryView.updateTextColors();
+        }
+
+        if (types.contains(PreferenceChangeType.WRAP_CONTENT)) {
+            if (PreferenceHelper.getWrapContent(this)) {
+                horizontalScroll.removeView(mMyEditor);
+                verticalScroll.removeView(horizontalScroll);
+                verticalScroll.addView(mMyEditor);
+            } else {
+                verticalScroll.removeView(mMyEditor);
+                verticalScroll.addView(horizontalScroll);
+                horizontalScroll.addView(mMyEditor);
+            }
+        } else if (types.contains(PreferenceChangeType.LINE_NUMERS)) {
+            mMyEditor.disableTextChangedListener();
+            mMyEditor.replaceTextKeepCursor(null);
+            mMyEditor.enableTextChangedListener();
+            mMyEditor.updatePadding();
+        } else if (types.contains(PreferenceChangeType.SYNTAX)) {
+            mMyEditor.disableTextChangedListener();
+            mMyEditor.replaceTextKeepCursor(mMyEditor.getText().toString());
+            mMyEditor.enableTextChangedListener();
+        } else if (types.contains(PreferenceChangeType.MONOSPACE)) {
+            if (PreferenceHelper.getUseMonospace(this))
+                mMyEditor.setTypeface(Typeface.MONOSPACE);
+            else
+                mMyEditor.setTypeface(Typeface.DEFAULT);
+        } else if (types.contains(PreferenceChangeType.THEME_CHANGE)) {
+            if (PreferenceHelper.getLightTheme(this)) {
+                mMyEditor.setTextColor(getResources().getColor(R.color.textColorInverted));
+            } else {
+                mMyEditor.setTextColor(getResources().getColor(R.color.textColor));
+            }
+        } else if (types.contains(PreferenceChangeType.TEXT_SUGGESTIONS) || types.contains(PreferenceChangeType.READ_ONLY)) {
+            if (PreferenceHelper.getReadOnly(this)) {
+                mMyEditor.setReadOnly(true);
+            } else {
+                mMyEditor.setReadOnly(false);
+                if (PreferenceHelper.getSuggestionActive(this)) {
+                    mMyEditor.setInputType(InputType.TYPE_CLASS_TEXT | InputType
+                            .TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE);
+                } else {
+                    mMyEditor.setInputType(InputType.TYPE_CLASS_TEXT | InputType
+                            .TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+                            | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD | InputType
+                            .TYPE_TEXT_FLAG_IME_MULTI_LINE);
+                }
+            }
+            // sometimes it becomes monospace after setting the input type
+            if (PreferenceHelper.getUseMonospace(this))
+                mMyEditor.setTypeface(Typeface.MONOSPACE);
+            else
+                mMyEditor.setTypeface(Typeface.DEFAULT);
+        } else if (types.contains(PreferenceChangeType.FONT_SIZE)) {
+            mMyEditor.updatePadding();
+            mMyEditor.setTextSize(PreferenceHelper.getFontSize(this));
+        } else if (types.contains(PreferenceChangeType.ACCESSORY_VIEW)) {
+            HorizontalScrollView parentAccessoryView = (HorizontalScrollView) findViewById(R.id.parent_accessory_view);
+            ViewUtils.setVisible(parentAccessoryView, PreferenceHelper.getUseAccessoryView(this));
+            mMyEditor.updatePadding();
+        } else if (types.contains(PreferenceChangeType.ENCODING)) {
+            String oldEncoding, newEncoding;
+            oldEncoding = currentEncoding;
+            newEncoding = PreferenceHelper.getEncoding(this);
+            try {
+                final byte[] oldText = mMyEditor.getText().toString().getBytes(oldEncoding);
+                mMyEditor.disableTextChangedListener();
+                mMyEditor.replaceTextKeepCursor(new String(oldText, newEncoding));
+                mMyEditor.enableTextChangedListener();
+                currentEncoding = newEncoding;
+            } catch (UnsupportedEncodingException ignored) {
+                try {
+                    final byte[] oldText = mMyEditor.getText().toString().getBytes(oldEncoding);
+                    mMyEditor.disableTextChangedListener();
+                    mMyEditor.replaceTextKeepCursor(new String(oldText, "UTF-16"));
+                    mMyEditor.enableTextChangedListener();
+                } catch (UnsupportedEncodingException ignored2) {
+                }
+            }
+        }
+    }
+
+    void aFileWasSelected(GreatUri uri) {
+        this.arrayAdapter.selectPosition(uri);
+        extension = "." + FilenameUtils.getExtension(uri.getFilePath());
+        Log.e("TAg", "EXTENSIOn " + extension);
+        for (int i = 0; i < this.langList.size(); i++) {
+            lang = new Lang(this.langList.get(i).getLanguageName(), this.langList.get(i).getEditorLanguage(), this.langList.get(i).getVersion(), this.langList.get(i).getRealName(), this.langList.get(i).getExtensen(), this.langList.get(i).getIcon(), this.langList.get(i).getCode(), this.langList.get(i).getInput());
+            if (lang.getExtensen().equalsIgnoreCase(extension)) {
+                language = lang.getEditorLanguage();
+                language_v = lang.getVersion();
+                client = "web";
+            }
+        }
+    }
+
+    void closedTheFile() {
+        this.arrayAdapter.selectPosition(new GreatUri(Uri.EMPTY, "", ""));
+    }
+
+
+    public void OpenFile(View view) {
+        if (Device.hasKitKatApi() && PreferenceHelper.getUseStorageAccessFramework(this)) {
+            Intent intent = new Intent("android.intent.action.OPEN_DOCUMENT");
+            intent.addCategory("android.intent.category.OPENABLE");
+            intent.setType("*/*");
+            startActivityForResult(intent, 42);
+            return;
+        }
+        Intent subActivity = new Intent(this, SelectFileActivity.class);
+        subActivity.putExtra("action", SelectFileActivity.Actions.SelectFile);
+        AnimationUtils.startActivityWithScale(this, subActivity, true, SELECT_FILE_CODE, view);
+    }
+
+    public void CreateFile(View view) {
+        if (Device.hasKitKatApi() && PreferenceHelper.getUseStorageAccessFramework(this)) {
+            Intent intent = new Intent("android.intent.action.CREATE_DOCUMENT");
+            intent.setType("*/*");
+            startActivityForResult(intent, 43);
+            return;
+        }
+        newFileToOpen(new GreatUri(Uri.EMPTY, "", ""), "");
+    }
+
+    public void OpenSettings(View view) {
+        this.mDrawerLayout.closeDrawer((int) GravityCompat.START);
+        this.mDrawerLayout.openDrawer((int) GravityCompat.END);
+    }
+
+    public void nextPageClicked() {
+        pageSystem.savePage(this.mMyEditor.getText().toString().trim());
+        pageSystem.nextPage();
+        this.mMyEditor.disableTextChangedListener();
+        this.mMyEditor.replaceTextKeepCursor(pageSystem.getCurrentPageText());
+        this.mMyEditor.enableTextChangedListener();
+        verticalScroll.postDelayed(new Runnable() {
+            public void run() {
+                FirstActivity.verticalScroll.smoothScrollTo(0, 0);
+            }
+        }, 200);
+        if (!PreferenceHelper.getPageSystemButtonsPopupShown(this)) {
+            PreferenceHelper.setPageSystemButtonsPopupShown(this, true);
+            Toast.makeText(this, getString(R.string.long_click_for_more_options), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    public void prevPageClicked() {
+        pageSystem.savePage(this.mMyEditor.getText().toString().trim());
+        pageSystem.prevPage();
+        this.mMyEditor.disableTextChangedListener();
+        this.mMyEditor.replaceTextKeepCursor(pageSystem.getCurrentPageText());
+        this.mMyEditor.enableTextChangedListener();
+        verticalScroll.postDelayed(new Runnable() {
+            public void run() {
+                FirstActivity.verticalScroll.smoothScrollTo(0, 0);
+            }
+        }, 200);
+        if (!PreferenceHelper.getPageSystemButtonsPopupShown(this)) {
+            PreferenceHelper.setPageSystemButtonsPopupShown(this, true);
+            Toast.makeText(this, getString(R.string.long_click_for_more_options), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    public void pageSystemButtonLongClicked() {
+        int maxPages = pageSystem.getMaxPage();
+        NumberPickerDialog.newInstance(NumberPickerDialog.Actions.SelectPage, 0, pageSystem.getCurrentPage(), maxPages).show(getFragmentManager().beginTransaction(), "dialog");
+    }
+
+    public boolean canReadNextPage() {
+        return pageSystem.canReadNextPage();
+    }
+
+    public boolean canReadPrevPage() {
+        return pageSystem.canReadPrevPage();
+    }
+
+    @Override
+    public void onSearchDone(SearchResult searchResult) {
+        FirstActivity.searchResult = searchResult;
+        invalidateOptionsMenu();
+
+        final int line = LineUtils.getLineFromIndex(searchResult.foundIndex.getFirst
+                (), mMyEditor.getLineCount(), mMyEditor.getLayout());
+        verticalScroll.post(new Runnable() {
+            @Override
+            public void run() {
+                int y = mMyEditor.getLayout().getLineTop(line);
+                if (y > 100)
+                    y -= 100;
+                else
+                    y = 0;
+
+                verticalScroll.scrollTo(0, y);
+            }
+        });
+
+        mMyEditor.setFocusable(true);
+        mMyEditor.requestFocus();
+        mMyEditor.setSelection(searchResult.foundIndex.getFirst(), searchResult.foundIndex.getFirst
+                () + searchResult.textLength);
+
+    }
+
+    @Override
+    public void onPageChanged(int page) {
+        pageSystemButtons.updateVisibility(false);
+        searchResult = null;
+        mMyEditor.clearHistory();
+        invalidateOptionsMenu();
+    }
+
+    @Override
+    public void onScrollChanged(int l, int t, int oldl, int oldt) {
+        pageSystemButtons.updateVisibility(Math.abs(t) > 10);
+
+        if (!PreferenceHelper.getSyntaxHighlight(this) || (mMyEditor.hasSelection() &&
+                searchResult == null) || updateHandler == null || colorRunnable_duringScroll == null)
+            return;
+
+        updateHandler.removeCallbacks(colorRunnable_duringEditing);
+        updateHandler.removeCallbacks(colorRunnable_duringScroll);
+        updateHandler.postDelayed(colorRunnable_duringScroll, SYNTAX_DELAY_MILLIS_SHORT);
+    }
+
+    @Override
+    public void onNumberPickerDialogDismissed(NumberPickerDialog.Actions action, int value) {
+        if (action == NumberPickerDialog.Actions.SelectPage) {
+            pageSystem.savePage(mMyEditor.getText().toString());
+            pageSystem.goToPage(value);
+            mMyEditor.disableTextChangedListener();
+            mMyEditor.replaceTextKeepCursor(pageSystem.getCurrentPageText());
+            mMyEditor.enableTextChangedListener();
+
+            verticalScroll.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    verticalScroll.smoothScrollTo(0, 0);
+                }
+            }, 200);
+
+        } else if (action == NumberPickerDialog.Actions.GoToLine) {
+
+            int fakeLine = mMyEditor.getLineUtils().fakeLineFromRealLine(value);
+            final int y = mMyEditor.getLineUtils().getYAtLine(verticalScroll,
+                    mMyEditor.getLineCount(), fakeLine);
+
+            verticalScroll.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    verticalScroll.smoothScrollTo(0, y);
+                }
+            }, 200);
+        }
+
+    }
+
+    public void userDoesntWantToSave(boolean openNewFile, GreatUri newUri) {
+        this.mMyEditor.fileSaved();
+        if (openNewFile) {
+            newFileToOpen(newUri, "");
+        } else {
+            cannotOpenFile();
+        }
+    }
+
+
+    public void CancelItem(int position, boolean andCloseOpenedFile) {
+        refreshList((GreatUri) this.greatUris.get(position), false, true);
+        if (andCloseOpenedFile) {
+            cannotOpenFile();
+        }
+    }
+
+
+    public void onButtonAccessoryViewClicked(String text) {
+        this.mMyEditor.getText().insert(this.mMyEditor.getSelectionStart(), text);
+    }
+
+
+    @RequiresApi(api = 21)
+    public void onEdittextDialogEnded(String result, String hint, Actions action) {
+        if (Device.hasKitKatApi() && TextUtils.isEmpty(greatUri.getFilePath())) {
+            Uri newUri = null;
+            try {
+                saveTheFile(true);
+
+                newUri = DocumentsContract.renameDocument(getContentResolver(), greatUri.getUri(), result);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            try {
+                if (newUri != null) {
+                    refreshList(greatUri, false, true);
+                    greatUri.setUri(newUri);
+                    greatUri.setFilePath(AccessStorageApi.getPath(this, newUri));
+                    greatUri.setFileName(AccessStorageApi.getName(this, newUri));
+                    new SaveFileTask(this, greatUri, pageSystem.getAllText(this.mMyEditor.getText().toString().trim()), currentEncoding, new SaveFileInterface() {
+                        public void fileSaved(Boolean success) {
+                            FirstActivity.this.savedAFile(FirstActivity.greatUri, true);
+                        }
+                    }).execute();
+                    return;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.print("Err" + e);
+            }
+            Toast.makeText(this, R.string.file_cannot_be_renamed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        File newFile = new File(greatUri.getParentFolder(), result);
+        if (new File(greatUri.getFilePath()).renameTo(newFile)) {
+            refreshList(greatUri, false, true);
+            greatUri.setUri(Uri.fromFile(newFile));
+            greatUri.setFilePath(newFile.getAbsolutePath());
+            greatUri.setFileName(newFile.getName());
+            new SaveFileTask(this, greatUri, pageSystem.getAllText(this.mMyEditor.getText().toString().trim()), currentEncoding, new SaveFileInterface() {
+                public void fileSaved(Boolean success) {
+                    FirstActivity.this.savedAFile(FirstActivity.greatUri, true);
+                }
+            }).execute();
+            return;
+        }
+        Toast.makeText(this, R.string.file_cannot_be_renamed, Toast.LENGTH_SHORT).show();
+    }
+
+
+    public String getback(String sr) {
+        String temp = "";
+        for (int i = 0; i < sr.length(); i++) {
+            temp = temp + ((char) (sr.charAt(i) - 5));
+        }
+        return temp;
+    }
+
+    void getList() {
+        Volley.newRequestQueue(this).add(new StringRequest(0, getback("myyu?44htrunqjw3uwtlwfrrnslmzg3nt4ox4qfslzfljx3oxts"), new Listener<String>() {
+            public void onResponse(String response) {
+                try {
+                    JSONArray jsonArray = new JSONArray(response);
+                    FirstActivity.this.languageList.clear();
+                    FirstActivity.this.languageNameList.clear();
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        Language language = (Language) new Gson().fromJson(jsonArray.getJSONObject(i).toString(), Language.class);
+                        if (!language.getName().equals("Scala")) {
+                            FirstActivity.this.languageList.add(language);
+                            FirstActivity.this.languageNameList.add(language.getName());
+                        }
+
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new ErrorListener() {
+            public void onErrorResponse(VolleyError error) {
+            }
+        }) {
+            protected Map<String, String> getParams() throws AuthFailureError {
+                return new HashMap();
+            }
+
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                return new HashMap();
+            }
+        });
+    }
+
+    public void getListLang() {
+        tempLanguage = new Lang[22];
+        tempLanguage[0] = new Lang("Bash", "shell", "default", "batchfile", ".bat", R.drawable.ic_bash, "echo \"Hello World!\"", "//");
+        tempLanguage[1] = new Lang("C", "c", "default", "c", ".cpp", R.drawable.ic_c, "#include <stdio.h>\n\nint main() \n { \n\tprintf(\"Hello, World!\"); \n\n\treturn 0;\n }", "//");
+        tempLanguage[2] = new Lang("C++", "c++", "default", "cpp", ".cpp", R.drawable.ic_cplus, "#include <iostream>\nusing namespace std;\n\nint main()\n{\n\tcout<<\"Hello World\";\n\n\treturn 0;\n}", "//");
+        tempLanguage[3] = new Lang("C++ 14", "c++14", "default", "cpp14", ".cpp", R.drawable.ic_cplus, "#include<iostream>\n#include<complex>\n\nusing namespace std;\n\nint main()\n{\n  // Store a generalized lambda, that squares a number, in a variable\n  auto func = [](auto input) { return input * input; };\n\n  // Usage examples:\n  // square of an int\n  cout << func(10) << std::endl;\n\n  // square of a double\n  cout << func(2.345) << std::endl;\n\n  // square of a complex number\n  cout << func(std::complex<double>(3, -2)) << std::endl;\n\n  return 0;\n}", "//");
+        tempLanguage[4] = new Lang("C++ 17", "c++17", "default", "cpp17", ".cpp", R.drawable.ic_cplus, "#include<iostream>\nusing namespace std;\n\nint main()\n{\n    cout<<__cplusplus;\n    \n    return 0;\n}", "//");
+        tempLanguage[5] = new Lang("C#", "cs", "default", "cs", ".cs", R.drawable.ic_csharp, "using System;\n\npublic class Test\n{\n\tpublic static void Main()\n\t{\n\t\tConsole.WriteLine(\"Hello World\");\n\t}\n}", "//");
+        tempLanguage[6] = new Lang("Clojure", "clojure", "default", "clj", ".clj", R.drawable.ic_clojure, "(println \"Hello World\")", ";");
+        tempLanguage[7] = new Lang("Go", "golang", "default", "go", ".go", R.drawable.ic_go, "package main\nimport \"fmt\"\nfunc main() {\n\tfmt.Println(\"hello world\")\n}", "//");
+        tempLanguage[8] = new Lang("Java 7.0", "java", "7", "java_7", ".java", R.drawable.ic_java, "/* package whatever; // don't place package name! */\n\nimport java.util.*;\nimport java.lang.*;\nimport java.io.*;\n\n/* Name of the class has to be \"Main\" only if the class is public. */\nclass Demo\n{\n\tpublic static void main (String[] args) throws java.lang.Exception\n\t{\n\t\tSystem.out.println(\"Hello World\");\n\t}\n}", "//");
+        tempLanguage[9] = new Lang("Java 8.0", "java", "8", "java_8", ".java", R.drawable.ic_java, "/* package whatever; // don't place package name! */\n\nimport java.util.*;\nimport java.lang.*;\nimport java.io.*;\n\n/* Name of the class has to be \"Main\" only if the class is public. */\nclass Demo\n{\n\tpublic static void main (String[] args) throws java.lang.Exception\n\t{\n\t\tSystem.out.println(\"Hello World\");\n\t}\n}", "//");
+        tempLanguage[10] = new Lang("MySQL", "mysql", "default", "sql", ".sql", R.drawable.ic_mysql, "create table myTable(name varchar(10));\ninsert into myTable values(\"Hello\");\nselect * from myTable;", "#");
+        tempLanguage[11] = new Lang("Objective-C", "objectivec", "default", "m", ".m", R.drawable.ic_objc, "#include <Foundation/Foundation.h>\n\n@interface Test\n+ (const char *) classStringValue;\n@end\n\n@implementation Test\n+ (const char *) classStringValue;\n{\n    return \"Hello World\";\n}\n@end\n\nint main(void)\n{\n    printf(\"%s\", [Test classStringValue]);\n    return 0;\n}", "//");
+        tempLanguage[12] = new Lang("Perl", "perl", "default", "pl", ".pl", R.drawable.ic_perl, "#!/usr/bin/perl\nprint \"Hello World\";\n", "#");
+        tempLanguage[13] = new Lang("PHP", "php", "default", "php", ".php", R.drawable.ic_php, "<?php\n$ho = fopen('php://stdout', \"w\");\nfwrite($ho, \"Hello\");\nfclose($ho);\n", "//");
+        tempLanguage[14] = new Lang("NodeJS", "nodejs", "default", "js", ".js", R.drawable.ic_javascript, "//Not happy with Plain JS? Use JS/HTML/CSS option for using your own libraries.\n\nconsole.log(\"Hello World\");", "//");
+        tempLanguage[15] = new Lang("Pascal", "pascal", "default", "pascal", ".p", R.drawable.ic_image_box, "begin\n   writeln('Hello, World!');\nend.", "--");
+        tempLanguage[16] = new Lang("Python 2.7", "python", "default", "py_2", ".py", R.drawable.ic_python2, "print \"Hello, World!\"", "#");
+        tempLanguage[17] = new Lang("Python 3.0", "python", "3.0", "py_3", ".py", R.drawable.ic_python3, "print (\"Hello, World!\")", "#");
+        tempLanguage[18] = new Lang("R", "r", "default", "r", ".r", R.drawable.ic_r, "print ( \"Hello World!\")", "#");
+        tempLanguage[19] = new Lang("Ruby", "ruby", "default", "rb", ".rb", R.drawable.ic_ruby, "puts \"Hello World\"", "#");
+//        tempLanguage[20] = new Lang("Scala", "scala", "default", "scala", ".scala", R.drawable.ic_scala, "object HelloWorld {\n  def main(args: Array[String]): Unit = {\n    println(\"Hello, world!\")\n  }\n}", "//");
+        tempLanguage[20] = new Lang("Swift 1.2", "swift", "1.2", "swift_12", ".swift", R.drawable.ic_swift, "print(\"Hello Swift\")", "//");
+        tempLanguage[21] = new Lang("VB.Net", "vb.net", "default", "vbs", ".vbs", R.drawable.ic_vbnet, "Imports System\n\nPublic Class Test\n\tPublic Shared Sub Main()\n\t\tConsole.writeLine(\"Hello World\")\n\tEnd Sub\nEnd Class", "'");
+        this.langList.clear();
+        Collections.addAll(this.langList, tempLanguage);
+    }
+
+    public void SelectLanguage(View view) {
+
+        try {
+            if (!this.fileOpened) {
+                if (Device.hasKitKatApi() && PreferenceHelper.getUseStorageAccessFramework(this)) {
+                    Intent intent = new Intent("android.intent.action.CREATE_DOCUMENT");
+                    intent.setType("*/*");
+                    startActivityForResult(intent, 43);
+                } else {
+                    newFileToOpen(new GreatUri(Uri.EMPTY, "", ""), "");
+                }
+            }
+
+
+            ArrayList arrayList = new ArrayList();
+            final Dialog dialog = new Dialog(this);
+            View inflate = ((LayoutInflater) this.getSystemService(LAYOUT_INFLATER_SERVICE)).inflate(R.layout.dialog_language, null);
+            ListView listView = (ListView) inflate.findViewById(R.id.lvLanguages);
+            for (int i = 0; i < tempLanguage.length; i++) {
+                arrayList.add(new C1157b(tempLanguage[i].getIcon(), tempLanguage[i].getLanguageName()));
+            }
+            listView.setAdapter(new DialogListAdapter(this, arrayList));
+            listView.setOnItemClickListener(new OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+
+                    dialog.dismiss();
+                    mDrawerLayout.closeDrawer(Gravity.START);
+                    Toast.makeText(FirstActivity.this, "Selected : " + ((Language) FirstActivity.this.languageList.get(position)).getName(), Toast.LENGTH_SHORT).show();
+                    FirstActivity.this.selectedLanguage = (Lang) FirstActivity.this.langList.get(position);
+                    FirstActivity.extension = FirstActivity.this.selectedLanguage.getExtensen();
+                    FirstActivity.client = "web";
+                    FirstActivity.language = FirstActivity.this.selectedLanguage.getEditorLanguage();
+                    FirstActivity.language_v = FirstActivity.this.selectedLanguage.getVersion();
+                    FirstActivity.code = FirstActivity.this.selectedLanguage.getCode();
+                    FirstActivity.input = FirstActivity.this.selectedLanguage.getInput();
+                    FirstActivity.this.mMyEditor.setText(FirstActivity.code.trim());
+
+                }
+            });
+            dialog.requestWindowFeature(1);
+            dialog.setContentView(inflate);
+            dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                @Override
+                public void onCancel(DialogInterface dialog) {
+                    dialog.dismiss();
+                }
+            });
+            dialog.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static class MyEditor extends AppCompatEditText {
+        private final TextPaint mPaintNumbers = new TextPaint();
+        private boolean canSaveFile;
+        private int deviceHeight;
+        private int editorHeight;
+        private boolean enabledChangeListener;
+        private int firstColoredIndex;
+        private int firstVisibleIndex;
+        private boolean[] isGoodLineArray;
+        private KeyListener keyListener;
+        private int lastVisibleIndex;
+        private int lineCount;
+        private int lineHeight;
+        private LineUtils lineUtils;
+        private Matcher f35m;
+        private EditTextChangeListener mChangeListener;
+        private EditHistory mEditHistory;
+        private boolean mIsUndoOrRedo;
+        private boolean mShowRedo;
+        private boolean mShowUndo;
+        private int numbersWidth;
+        private int paddingTop;
+        private int realLine;
+        private int[] realLines;
+        private int startingLine;
+        private CharSequence textToHighlight;
+        private boolean wrapContent;
+
+        public MyEditor(Context context, AttributeSet attrs) {
+            super(context, attrs);
+        }
+
+        public void setupEditor() {
+            this.mEditHistory = new EditHistory();
+            this.mChangeListener = new EditTextChangeListener();
+            this.lineUtils = new LineUtils();
+            this.deviceHeight = getResources().getDisplayMetrics().heightPixels;
+            this.paddingTop = EditTextPadding.getPaddingTop(getContext());
+            this.mPaintNumbers.setAntiAlias(true);
+            this.mPaintNumbers.setDither(false);
+            this.mPaintNumbers.setTextAlign(Align.RIGHT);
+            this.mPaintNumbers.setColor(getResources().getColor(R.color.file_text));
+            if (PreferenceHelper.getLightTheme(getContext())) {
+                setTextColor(getResources().getColor(R.color.textColorInverted));
+            } else {
+                setTextColor(getResources().getColor(R.color.textColor));
+            }
+            updatePadding();
+            if (PreferenceHelper.getReadOnly(getContext())) {
+                setReadOnly(true);
+            } else {
+                setReadOnly(false);
+                if (PreferenceHelper.getSuggestionActive(getContext())) {
+                    setInputType(393217);
+                } else {
+                    setInputType(917649);
+                }
+            }
+            if (PreferenceHelper.getUseMonospace(getContext())) {
+                setTypeface(Typeface.MONOSPACE);
+            } else {
+                setTypeface(Typeface.DEFAULT);
+            }
+            setTextSize((float) PreferenceHelper.getFontSize(getContext()));
+            setFocusable(true);
+            setOnClickListener(new C03491());
+            setOnFocusChangeListener(new C03502());
+            setMaxHistorySize(30);
+            resetVariables();
+        }
+
+        public void setReadOnly(boolean value) {
+            if (value) {
+                this.keyListener = getKeyListener();
+                setKeyListener(null);
+            } else if (this.keyListener != null) {
+                setKeyListener(this.keyListener);
+            }
+        }
+
+        public void updatePadding() {
+            Context context = getContext();
+            if (PreferenceHelper.getLineNumbers(context)) {
+                setPadding(EditTextPadding.getPaddingWithLineNumbers(context, (float) PreferenceHelper.getFontSize(context)), EditTextPadding.getPaddingTop(context), EditTextPadding.getPaddingTop(context), 0);
+            } else {
+                setPadding(EditTextPadding.getPaddingWithoutLineNumbers(context), EditTextPadding.getPaddingTop(context), EditTextPadding.getPaddingTop(context), 0);
+            }
+            FirstActivity.verticalScroll.setPadding(0, 0, 0, EditTextPadding.getPaddingBottom(context));
+        }
+
+        public void setTextSize(float size) {
+            super.setTextSize(size);
+            this.mPaintNumbers.setTextSize((float) ((int) ((size * getContext().getResources().getDisplayMetrics().density) * 0.65f)));
+            this.numbersWidth = (int) (((double) EditTextPadding.getPaddingWithLineNumbers(getContext(), (float) PreferenceHelper.getFontSize(getContext()))) * 0.8d);
+            this.lineHeight = getLineHeight();
+        }
+
+        public void onDraw(@NonNull Canvas canvas) {
+            if (!(this.lineCount == getLineCount() && (this.startingLine == FirstActivity.pageSystem.getStartingLine() || FirstActivity.pageSystem == null))) {
+                this.startingLine = FirstActivity.pageSystem.getStartingLine();
+                this.lineCount = getLineCount();
+                this.lineUtils.updateHasNewLineArray(FirstActivity.pageSystem.getStartingLine(), this.lineCount, getLayout(), getText().toString());
+                this.isGoodLineArray = this.lineUtils.getGoodLines();
+                this.realLines = this.lineUtils.getRealLines();
+            }
+            if (PreferenceHelper.getLineNumbers(getContext())) {
+                this.wrapContent = PreferenceHelper.getWrapContent(getContext());
+                int i = 0;
+                while (i < this.lineCount) {
+                    if (!this.wrapContent || this.isGoodLineArray[i]) {
+                        this.realLine = this.realLines[i];
+                        canvas.drawText(String.valueOf(this.realLine), (float) this.numbersWidth, (float) (this.paddingTop + (this.lineHeight * (i + 1))), this.mPaintNumbers);
+                    }
+                    i++;
+                }
+            }
+            super.onDraw(canvas);
+        }
+
+        public boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
+            if (event.isCtrlPressed()) {
+                switch (keyCode) {
+                    case 29:
+                        return onTextContextMenuItem(FirstActivity.ID_SELECT_ALL);
+                    case 31:
+                        return onTextContextMenuItem(FirstActivity.ID_COPY);
+                    case 47:
+                        break;
+                    case 50:
+                        return onTextContextMenuItem(FirstActivity.ID_PASTE);
+                    case 52:
+                        return onTextContextMenuItem(FirstActivity.ID_CUT);
+                    case 53:
+                        break;
+                    case 54:
+                        if (getCanUndo()) {
+                            return onTextContextMenuItem(R.id.im_undo);
+                        }
+                        break;
+                    default:
+                        return super.onKeyDown(keyCode, event);
+                }
+                if (getCanRedo()) {
+                    return onTextContextMenuItem(R.id.im_redo);
+                }
+                ((FirstActivity) getContext()).saveTheFile(false);
+                return true;
+            }
+            switch (keyCode) {
+                case 61:
+                    String textToInsert = "  ";
+                    int start = Math.max(getSelectionStart(), 0);
+                    int end = Math.max(getSelectionEnd(), 0);
+                    getText().replace(Math.min(start, end), Math.max(start, end), textToInsert, 0, textToInsert.length());
+                    return true;
+                default:
+                    return super.onKeyDown(keyCode, event);
+            }
+        }
+
+        public boolean onKeyUp(int keyCode, @NonNull KeyEvent event) {
+            if (event.isCtrlPressed()) {
+                switch (keyCode) {
+                    case 29:
+                    case 31:
+                    case 47:
+                    case 50:
+                    case 52:
+                    case 53:
+                    case 54:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+            switch (keyCode) {
+                case 61:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public boolean onTextContextMenuItem(int id) {
+            if (id == R.id.im_undo) {
+                undo();
+                return true;
+            } else if (id != R.id.im_redo) {
+                return super.onTextContextMenuItem(id);
+            } else {
+                redo();
+                return true;
+            }
+        }
+
+        public boolean getCanUndo() {
+            return this.mEditHistory.mmPosition > 0;
+        }
+
+        public boolean getCanRedo() {
+            return this.mEditHistory.mmPosition < this.mEditHistory.mmHistory.size();
+        }
+
+        public void undo() {
+            int i = 0;
+            EditItem edit = this.mEditHistory.getPrevious();
+            if (edit != null) {
+                int length;
+                Editable text = getEditableText();
+                int start = edit.mmStart;
+                if (edit.mmAfter != null) {
+                    length = edit.mmAfter.length();
+                } else {
+                    length = 0;
+                }
+                int end = start + length;
+                this.mIsUndoOrRedo = true;
+                text.replace(start, end, edit.mmBefore);
+                this.mIsUndoOrRedo = false;
+                UnderlineSpan[] underlineSpanArr = (UnderlineSpan[]) text.getSpans(0, text.length(), UnderlineSpan.class);
+                int length2 = underlineSpanArr.length;
+                while (i < length2) {
+                    text.removeSpan(underlineSpanArr[i]);
+                    i++;
+                }
+                if (edit.mmBefore != null) {
+                    start += edit.mmBefore.length();
+                }
+                Selection.setSelection(text, start);
+            }
+        }
+
+        public void redo() {
+            int i = 0;
+            EditItem edit = this.mEditHistory.getNext();
+            if (edit != null) {
+                int length;
+                Editable text = getEditableText();
+                int start = edit.mmStart;
+                if (edit.mmBefore != null) {
+                    length = edit.mmBefore.length();
+                } else {
+                    length = 0;
+                }
+                int end = start + length;
+                this.mIsUndoOrRedo = true;
+                text.replace(start, end, edit.mmAfter);
+                this.mIsUndoOrRedo = false;
+                UnderlineSpan[] underlineSpanArr = (UnderlineSpan[]) text.getSpans(0, text.length(), UnderlineSpan.class);
+                int length2 = underlineSpanArr.length;
+                while (i < length2) {
+                    text.removeSpan(underlineSpanArr[i]);
+                    i++;
+                }
+                if (edit.mmAfter != null) {
+                    start += edit.mmAfter.length();
+                }
+                Selection.setSelection(text, start);
+            }
+        }
+
+        public void setMaxHistorySize(int maxHistorySize) {
+            this.mEditHistory.setMaxHistorySize(maxHistorySize);
+        }
+
+        public void resetVariables() {
+            this.mEditHistory.clear();
+            this.enabledChangeListener = false;
+            this.lineCount = 0;
+            this.realLine = 0;
+            this.startingLine = 0;
+            this.mIsUndoOrRedo = false;
+            this.mShowUndo = false;
+            this.mShowRedo = false;
+            this.canSaveFile = false;
+            this.firstVisibleIndex = 0;
+            this.firstColoredIndex = 0;
+        }
+
+        public boolean canSaveFile() {
+            return this.canSaveFile;
+        }
+
+        public void fileSaved() {
+            this.canSaveFile = false;
+        }
+
+        public void replaceTextKeepCursor(String textToUpdate) {
+
+            int cursorPos;
+            int cursorPosEnd;
+
+            if (textToUpdate != null) {
+                cursorPos = 0;
+                cursorPosEnd = 0;
+            } else {
+                cursorPos = getSelectionStart();
+                cursorPosEnd = getSelectionEnd();
+            }
+
+            disableTextChangedListener();
+
+            if (PreferenceHelper.getSyntaxHighlight(getContext())) {
+                setText(highlight(textToUpdate == null ? getEditableText() : Editable.Factory
+                        .getInstance().newEditable(textToUpdate), textToUpdate != null));
+            } else {
+                setText(textToUpdate == null ? getEditableText() : textToUpdate);
+            }
+
+            enableTextChangedListener();
+
+            int newCursorPos;
+
+            boolean cursorOnScreen = cursorPos >= firstVisibleIndex && cursorPos <= lastVisibleIndex;
+
+            if (cursorOnScreen) { // if the cursor is on screen
+                newCursorPos = cursorPos; // we dont change its position
+            } else {
+                newCursorPos = firstVisibleIndex; // else we set it to the first visible pos
+            }
+
+            if (newCursorPos > -1 && newCursorPos <= length()) {
+                if (cursorPosEnd != cursorPos)
+                    setSelection(cursorPos, cursorPosEnd);
+                else
+                    setSelection(newCursorPos);
+            }
+        }
+
+        public void disableTextChangedListener() {
+            this.enabledChangeListener = false;
+            removeTextChangedListener(this.mChangeListener);
+        }
+
+        public Editable highlight(Editable editable, boolean newText) {
+            int i = 0;
+            editable.clearSpans();
+            if (editable.length() != 0) {
+                this.editorHeight = getHeight();
+                if (newText || this.editorHeight <= 0) {
+                    this.firstVisibleIndex = 0;
+                    this.lastVisibleIndex = 2500;
+                } else {
+                    Layout layout = getLayout();
+                    LineUtils lineUtils = this.lineUtils;
+                    this.firstVisibleIndex = layout.getLineStart(LineUtils.getFirstVisibleLine(FirstActivity.verticalScroll, this.editorHeight, this.lineCount));
+                    layout = getLayout();
+                    lineUtils = this.lineUtils;
+                    this.lastVisibleIndex = layout.getLineEnd(LineUtils.getLastVisibleLine(FirstActivity.verticalScroll, this.editorHeight, this.lineCount, this.deviceHeight) - 1);
+                }
+                this.firstColoredIndex = this.firstVisibleIndex - 500;
+                if (this.firstColoredIndex < 0) {
+                    this.firstColoredIndex = 0;
+                }
+                if (this.lastVisibleIndex > editable.length()) {
+                    this.lastVisibleIndex = editable.length();
+                }
+                if (this.firstColoredIndex > this.lastVisibleIndex) {
+                    this.firstColoredIndex = this.lastVisibleIndex;
+                }
+                this.textToHighlight = editable.subSequence(this.firstColoredIndex, this.lastVisibleIndex);
+                if (TextUtils.isEmpty(FirstActivity.fileExtension)) {
+                    FirstActivity.fileExtension = "" + FirstActivity.extension;
+                }
+                if (FirstActivity.fileExtension.contains("htm") || FirstActivity.fileExtension.contains(HttpHelper.CONTENT_TYPE_XML)) {
+                    color(Patterns.HTML_TAGS, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.HTML_ATTRS, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.GENERAL_STRINGS, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.XML_COMMENTS, editable, this.textToHighlight, this.firstColoredIndex);
+                } else if (FirstActivity.fileExtension.equals("css")) {
+                    color(Patterns.CSS_ATTRS, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.CSS_ATTR_VALUE, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.SYMBOLS, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.GENERAL_COMMENTS, editable, this.textToHighlight, this.firstColoredIndex);
+                } else if (Arrays.asList(MimeTypes.MIME_CODE).contains(FirstActivity.fileExtension)) {
+                    String access$500 = FirstActivity.fileExtension;
+                    switch (access$500.hashCode()) {
+                        case 3593:
+                            if (access$500.equals("py")) {
+                                i = 1;
+                                break;
+                            }
+                        case 107512:
+                            if (access$500.equals("lua")) {
+                                break;
+                            }
+                        default:
+                            i = -1;
+                            break;
+                    }
+                    switch (i) {
+                        case 0:
+                            color(Patterns.LUA_KEYWORDS, editable, this.textToHighlight, this.firstColoredIndex);
+                            break;
+                        case 1:
+                            color(Patterns.PY_KEYWORDS, editable, this.textToHighlight, this.firstColoredIndex);
+                            break;
+                        default:
+                            color(Patterns.GENERAL_KEYWORDS, editable, this.textToHighlight, this.firstColoredIndex);
+                            break;
+                    }
+                    color(Patterns.NUMBERS_OR_SYMBOLS, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.GENERAL_STRINGS, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.GENERAL_COMMENTS, editable, this.textToHighlight, this.firstColoredIndex);
+                    if (FirstActivity.fileExtension.equals("php")) {
+                        color(Patterns.PHP_VARIABLES, editable, this.textToHighlight, this.firstColoredIndex);
+                    }
+                } else if (Arrays.asList(MimeTypes.MIME_SQL).contains(FirstActivity.fileExtension)) {
+                    color(Patterns.SYMBOLS, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.GENERAL_STRINGS, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.SQL_KEYWORDS, editable, this.textToHighlight, this.firstColoredIndex);
+                } else {
+                    if (!Arrays.asList(MimeTypes.MIME_MARKDOWN).contains(FirstActivity.fileExtension)) {
+                        color(Patterns.GENERAL_KEYWORDS, editable, this.textToHighlight, this.firstColoredIndex);
+                    }
+                    color(Patterns.NUMBERS_OR_SYMBOLS, editable, this.textToHighlight, this.firstColoredIndex);
+                    color(Patterns.GENERAL_STRINGS, editable, this.textToHighlight, this.firstColoredIndex);
+                    if (FirstActivity.fileExtension.equals("prop") || FirstActivity.fileExtension.contains("conf") || Arrays.asList(MimeTypes.MIME_MARKDOWN).contains(FirstActivity.fileExtension)) {
+                        color(Patterns.GENERAL_COMMENTS_NO_SLASH, editable, this.textToHighlight, this.firstColoredIndex);
+                    } else {
+                        color(Patterns.GENERAL_COMMENTS, editable, this.textToHighlight, this.firstColoredIndex);
+                    }
+                    if (Arrays.asList(MimeTypes.MIME_MARKDOWN).contains(FirstActivity.fileExtension)) {
+                        color(Patterns.LINK, editable, this.textToHighlight, this.firstColoredIndex);
+                    }
+                }
+            }
+            return editable;
+        }
+
+        public void enableTextChangedListener() {
+            if (!this.enabledChangeListener) {
+                addTextChangedListener(this.mChangeListener);
+                this.enabledChangeListener = true;
+            }
+        }
+
+        public LineUtils getLineUtils() {
+            return this.lineUtils;
+        }
+
+
+        private void color(Pattern pattern, Editable allText, CharSequence textToHighlight, int start) {
+            int color = 0;
+            if (pattern.equals(Patterns.HTML_TAGS) || pattern.equals(Patterns.GENERAL_KEYWORDS) || pattern.equals(Patterns.SQL_KEYWORDS) || pattern.equals(Patterns.PY_KEYWORDS) || pattern.equals(Patterns.LUA_KEYWORDS)) {
+                color = getResources().getColor(R.color.syntax_keyword);
+            } else if (pattern.equals(Patterns.HTML_ATTRS) || pattern.equals(Patterns.CSS_ATTRS) || pattern.equals(Patterns.LINK)) {
+                color = getResources().getColor(R.color.syntax_attr);
+            } else if (pattern.equals(Patterns.CSS_ATTR_VALUE)) {
+                color = getResources().getColor(R.color.syntax_attr_value);
+            } else if (pattern.equals(Patterns.XML_COMMENTS) || pattern.equals(Patterns.GENERAL_COMMENTS) || pattern.equals(Patterns.GENERAL_COMMENTS_NO_SLASH)) {
+                color = getResources().getColor(R.color.syntax_comment);
+            } else if (pattern.equals(Patterns.GENERAL_STRINGS)) {
+                color = getResources().getColor(R.color.syntax_string);
+            } else if (pattern.equals(Patterns.NUMBERS) || pattern.equals(Patterns.SYMBOLS) || pattern.equals(Patterns.NUMBERS_OR_SYMBOLS)) {
+                color = getResources().getColor(R.color.syntax_number);
+            } else if (pattern.equals(Patterns.PHP_VARIABLES)) {
+                color = getResources().getColor(R.color.syntax_variable);
+            }
+            this.f35m = pattern.matcher(textToHighlight);
+            while (this.f35m.find()) {
+                allText.setSpan(new ForegroundColorSpan(color), this.f35m.start() + start, this.f35m.end() + start, 33);
+            }
+        }
+        //endregion
+
+        public void clearHistory() {
+            this.mEditHistory.clear();
+            this.mShowUndo = getCanUndo();
+            this.mShowRedo = getCanRedo();
+        }
+
+        public void storePersistentState(Editor editor, String prefix) {
+            editor.putString(prefix + ".hash", String.valueOf(getText().toString().hashCode()));
+            editor.putInt(prefix + ".maxSize", this.mEditHistory.mmMaxHistorySize);
+            editor.putInt(prefix + ".position", this.mEditHistory.mmPosition);
+            editor.putInt(prefix + ".size", this.mEditHistory.mmHistory.size());
+            int i = 0;
+            Iterator it = this.mEditHistory.mmHistory.iterator();
+            while (it.hasNext()) {
+                EditItem ei = (EditItem) it.next();
+                String pre = prefix + "." + i;
+                editor.putInt(pre + ".start", ei.mmStart);
+                editor.putString(pre + ".before", ei.mmBefore.toString());
+                editor.putString(pre + ".after", ei.mmAfter.toString());
+                i++;
+            }
+        }
+
+        public boolean restorePersistentState(SharedPreferences sp, String prefix) throws IllegalStateException {
+            boolean ok = doRestorePersistentState(sp, prefix);
+            if (!ok) {
+                this.mEditHistory.clear();
+            }
+            return ok;
+        }
+
+        private boolean doRestorePersistentState(SharedPreferences sp, String prefix) {
+            String hash = sp.getString(prefix + ".hash", null);
+            if (hash == null) {
+                return true;
+            }
+            if (Integer.valueOf(hash) != getText().toString().hashCode()) {
+                return false;
+            }
+            this.mEditHistory.clear();
+            this.mEditHistory.mmMaxHistorySize = sp.getInt(prefix + ".maxSize", -1);
+            int count = sp.getInt(prefix + ".size", -1);
+            if (count == -1) {
+                return false;
+            }
+            for (int i = 0; i < count; i++) {
+                String pre = prefix + "." + i;
+                int start = sp.getInt(pre + ".start", -1);
+                String before = sp.getString(pre + ".before", null);
+                String after = sp.getString(pre + ".after", null);
+                if (start == -1 || before == null || after == null) {
+                    return false;
+                }
+                this.mEditHistory.add(new EditItem(start, before, after));
+            }
+            this.mEditHistory.mmPosition = sp.getInt(prefix + ".position", -1);
+            return this.mEditHistory.mmPosition != -1;
+        }
+
+        class C03491 implements OnClickListener {
+            C03491() {
+            }
+
+            @SuppressLint("WrongConstant")
+            public void onClick(View v) {
+                if (!PreferenceHelper.getReadOnly(MyEditor.this.getContext())) {
+                    FirstActivity.verticalScroll.tempDisableListener(1000);
+                    ((InputMethodManager) MyEditor.this.getContext().getSystemService("input_method")).showSoftInput(v, 1);
+                }
+            }
+        }
+
+        class C03502 implements OnFocusChangeListener {
+            C03502() {
+            }
+
+            @SuppressLint("WrongConstant")
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus && !PreferenceHelper.getReadOnly(MyEditor.this.getContext())) {
+                    FirstActivity.verticalScroll.tempDisableListener(1000);
+                    ((InputMethodManager) MyEditor.this.getContext().getSystemService("input_method")).showSoftInput(v, 1);
+                }
+            }
+        }
+
+        private final class EditHistory {
+            private final LinkedList<EditItem> mmHistory;
+            private int mmMaxHistorySize;
+            private int mmPosition;
+
+            private EditHistory() {
+                this.mmHistory = new LinkedList();
+                this.mmPosition = 0;
+                this.mmMaxHistorySize = -1;
+            }
+
+            private int size() {
+                return this.mmHistory.size();
+            }
+
+            private void clear() {
+                this.mmPosition = 0;
+                this.mmHistory.clear();
+            }
+
+            private void add(EditItem item) {
+                while (this.mmHistory.size() > this.mmPosition) {
+                    this.mmHistory.removeLast();
+                }
+                this.mmHistory.add(item);
+                this.mmPosition++;
+                if (this.mmMaxHistorySize >= 0) {
+                    trimHistory();
+                }
+            }
+
+            private void trimHistory() {
+                while (this.mmHistory.size() > this.mmMaxHistorySize) {
+                    this.mmHistory.removeFirst();
+                    this.mmPosition--;
+                }
+                if (this.mmPosition < 0) {
+                    this.mmPosition = 0;
+                }
+            }
+
+            private void setMaxHistorySize(int maxHistorySize) {
+                this.mmMaxHistorySize = maxHistorySize;
+                if (this.mmMaxHistorySize >= 0) {
+                    trimHistory();
+                }
+            }
+
+            private EditItem getPrevious() {
+                if (this.mmPosition == 0) {
+                    return null;
+                }
+                this.mmPosition--;
+                return (EditItem) this.mmHistory.get(this.mmPosition);
+            }
+
+            private EditItem getNext() {
+                if (this.mmPosition >= this.mmHistory.size()) {
+                    return null;
+                }
+                EditItem item = (EditItem) this.mmHistory.get(this.mmPosition);
+                this.mmPosition++;
+                return item;
+            }
+        }
+
+        private final class EditItem {
+            private final CharSequence mmAfter;
+            private final CharSequence mmBefore;
+            private final int mmStart;
+
+            public EditItem(int start, CharSequence before, CharSequence after) {
+                this.mmStart = start;
+                this.mmBefore = before;
+                this.mmAfter = after;
+            }
+        }
+
+        private final class EditTextChangeListener implements TextWatcher {
+            private CharSequence mAfterChange;
+            private CharSequence mBeforeChange;
+
+            private EditTextChangeListener() {
+            }
+
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                if (!MyEditor.this.mIsUndoOrRedo) {
+                    this.mBeforeChange = s.subSequence(start, start + count);
+                }
+            }
+
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (!MyEditor.this.mIsUndoOrRedo) {
+                    this.mAfterChange = s.subSequence(start, start + count);
+                    MyEditor.this.mEditHistory.add(new EditItem(start, this.mBeforeChange, this.mAfterChange));
+                }
+            }
+
+            public void afterTextChanged(Editable s) {
+                boolean showUndo = MyEditor.this.getCanUndo();
+                boolean showRedo = MyEditor.this.getCanRedo();
+                if (!MyEditor.this.canSaveFile) {
+                    MyEditor.this.canSaveFile = MyEditor.this.getCanUndo();
+                }
+                if (!(showUndo == MyEditor.this.mShowUndo && showRedo == MyEditor.this.mShowRedo)) {
+                    MyEditor.this.mShowUndo = showUndo;
+                    MyEditor.this.mShowRedo = showRedo;
+                    ((FirstActivity) MyEditor.this.getContext()).invalidateOptionsMenu();
+                }
+                ((FirstActivity) MyEditor.this.getContext()).updateTextSyntax();
+            }
+        }
+    }
+
+    class C03441 implements Runnable {
+        C03441() {
+        }
+
+        public void run() {
+            FirstActivity.this.mMyEditor.replaceTextKeepCursor(null);
+        }
+    }
+
+    class C03452 implements Runnable {
+        C03452() {
+        }
+
+        public void run() {
+            FirstActivity.this.mMyEditor.replaceTextKeepCursor(null);
+        }
+    }
+
+    class C06177 implements SaveFileInterface {
+        C06177() {
+        }
+
+        public void fileSaved(Boolean success) {
+            FirstActivity.this.savedAFile(FirstActivity.greatUri, true);
+        }
+    }
+}
+
